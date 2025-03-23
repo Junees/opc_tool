@@ -118,28 +118,90 @@ def visualize_regions(image_path):
     
     return output_path
 
+def process_batch(directory, output_file=None):
+    """
+    Process all image files in a directory
+    
+    Args:
+        directory: Directory containing images
+        output_file: Path to save results (optional)
+    
+    Returns:
+        List of results
+    """
+    supported_formats = ['.jpg', '.jpeg', '.png', '.bmp', '.tiff']
+    results = []
+    
+    # Initialize output file if provided
+    if output_file:
+        with open(output_file, 'w') as f:
+            f.write("Image,Card Name,Set Number\n")
+    
+    # Get all image files in the directory
+    for filename in os.listdir(directory):
+        file_ext = os.path.splitext(filename)[1].lower()
+        if file_ext in supported_formats:
+            image_path = os.path.join(directory, filename)
+            
+            try:
+                print(f"Processing {filename}...")
+                card_info = extract_card_info(image_path)
+                
+                # Print result to console
+                print(f"  Card Name: {card_info['card_name']}")
+                print(f"  Set Number: {card_info['set_number']}")
+                
+                # Store result
+                result = {
+                    "image": filename,
+                    "card_name": card_info['card_name'],
+                    "set_number": card_info['set_number']
+                }
+                results.append(result)
+                
+                # Write to output file if provided
+                if output_file:
+                    with open(output_file, 'a') as f:
+                        f.write(f"{filename},{card_info['card_name'] or 'N/A'},{card_info['set_number'] or 'N/A'}\n")
+            
+            except Exception as e:
+                print(f"  Error processing {filename}: {e}")
+    
+    if output_file:
+        print(f"\nResults saved to {output_file}")
+    
+    return results
+
 def main():
     parser = argparse.ArgumentParser(description='Extract card information using targeted OCR')
-    parser.add_argument('image_path', type=str, help='Path to the card image')
+    parser.add_argument('input', type=str, help='Path to the card image or directory of images')
+    parser.add_argument('--batch', action='store_true', help='Process a directory of images')
+    parser.add_argument('--output', type=str, help='Output file for batch processing results')
     parser.add_argument('--debug', action='store_true', help='Print all detected text')
     parser.add_argument('--visualize', action='store_true', help='Create visualization of regions')
     
     args = parser.parse_args()
     
     try:
-        if args.visualize:
-            visualize_regions(args.image_path)
+        if args.batch:
+            if not os.path.isdir(args.input):
+                raise ValueError(f"{args.input} is not a directory")
             
-        card_info = extract_card_info(args.image_path)
-        
-        print("\n===== Card Information =====")
-        print(f"Card Name: {card_info['card_name']}")
-        print(f"Set Number: {card_info['set_number']}")
-        
-        if args.debug:
-            print("\n===== All Detected Text =====")
-            for i, text in enumerate(card_info['all_detected_text']):
-                print(f"{i+1}. {text}")
+            process_batch(args.input, args.output)
+        else:
+            if args.visualize:
+                visualize_regions(args.input)
+                
+            card_info = extract_card_info(args.input)
+            
+            print("\n===== Card Information =====")
+            print(f"Card Name: {card_info['card_name']}")
+            print(f"Set Number: {card_info['set_number']}")
+            
+            if args.debug:
+                print("\n===== All Detected Text =====")
+                for i, text in enumerate(card_info['all_detected_text']):
+                    print(f"{i+1}. {text}")
         
     except Exception as e:
         print(f"Error: {e}")
