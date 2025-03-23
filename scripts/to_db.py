@@ -38,7 +38,12 @@ with engine.connect() as conn:
     count = result.scalar()
     print(f"Successfully imported {count} records to PostgreSQL table '{table_name}'")
     
-    # Show first few rows
+    # Execute the UPDATE statement
+    conn.execute(text('UPDATE one_piece_cards SET "TCG Marketplace Price" = 1'))
+    conn.commit()
+    print("\nUpdated TCG Marketplace Price to 1 for all records")
+
+     # Show first few rows
     result = conn.execute(text(f"SELECT * FROM {table_name} LIMIT 5"))
     rows = result.fetchall()
     print("\nFirst 5 rows in database:")
